@@ -28,7 +28,6 @@ require([
     const view = new MapView({
         container: "viewDiv",
         map: map,
-        // center: [-99.14, 36.48],
         zoom: 8
     });
 
@@ -42,11 +41,15 @@ require([
     const homeWidget = new Home({
         view: view
     });
+
     view.ui.add(homeWidget, "top-left");
+
     const compassWidget = new Compass({
         view: view
     });
+
     view.ui.add(compassWidget, "top-left");
+
     // Add LayerList widget
     const layerList = new LayerList({
         view: view
@@ -56,23 +59,25 @@ require([
     const legend = new Legend({
         view: view
     });
+
     const legendExpand = new Expand({
-        expandIconClass: "esri-icon-layer-list",  // see https://developers.arcgis.com/javascript/latest/guide/esri-icon-font/
-        // expandTooltip: "Expand LayerList", // optional, defaults to "Expand" for English locale
+        expandIconClass: "esri-icon-layer-list",
         view: view,
         content: legend,
-        expandIconClass: "esri-icon-legend", // Set the expand icon to the legend icon class
+        expandIconClass: "esri-icon-legend",
         expandTooltip: "Legend"
     });
+
     const layerListExpand = new Expand({
-        expandIconClass: "esri-icon-layer-list",  // see https://developers.arcgis.com/javascript/latest/guide/esri-icon-font/
-        // expandTooltip: "Expand LayerList", // optional, defaults to "Expand" for English locale
+        expandIconClass: "esri-icon-layer-list",
         view: view,
         content: layerList,
         expandTooltip: "Layerlist"
     });
+
     view.ui.add(layerListExpand, 'top-right')
     view.ui.add(legendExpand, 'bottom-left')
+
     const sublayers = allLayers.allSublayers.items;
 
     // Calculate the overall extent
@@ -96,8 +101,7 @@ require([
 
     const customWidg = document.getElementById('customWidget')
     const customWig_Expand = new Expand({
-        expandIconClass: "esri-icon esri-icon-filter",  // see https://developers.arcgis.com/javascript/latest/guide/esri-icon-font/
-        // expandTooltip: "Expand LayerList", // optional, defaults to "Expand" for English locale
+        expandIconClass: "esri-icon esri-icon-filter",
         view: view,
         content: customWidg,
         expandTooltip: "Visualise Layer"
@@ -108,77 +112,38 @@ require([
     var FieldVal = document.getElementById('selectFieldValues')
     var highlights = [];
 
-
-
-    // qryBTN.addEventListener("click", function () {
-    //     var field = ''
-    //     if (selectOption.value == "material") {
-    //         field = 'material'
-    //     }
-    //     else {
-    //         field = 'diameter'
-    //     }
-    //     const sublayerId = 16;
-    //     const sublayer = allLayers.findSublayerById(sublayerId);
-
-    //     const uniqueValues = [...new Set(QryResult.features.map(feature => feature.attributes[field]))];
-
-    //     // Create a UniqueValueRenderer
-    //     const renderer = new UniqueValueRenderer({
-    //         field: field,
-    //         uniqueValueInfos: uniqueValues.map(value => ({
-    //             value: value,
-    //             symbol: { type: "simple-fill", color: [255, 0, 0, 0.5] } // Adjust the symbol as needed
-    //         }))
-    //     });
-
-    //     // Apply the renderer to the sublayer
-    //     sublayer.renderer = renderer;
-
-    // })
     var featLyr
-    FieldVal.addEventListener('change', async () => {
 
-        // var selectedValue = FieldVal.value;
+    FieldVal.addEventListener('change', async () => {
 
         var selectedField = selectOption.value
         var option = FieldVal.value;
-        // var selectionOption = ''
-
-        // else {
-        //     // option = 'diameter'
-
-        // }
-
         const sublayerId = 16;
         const sublayer = allLayers.findSublayerById(sublayerId);
 
         if (sublayer) {
 
-
-            // Create a Query object
-
             const query = sublayer.createQuery();
             if (selectOption.value == 'material') {
                 query.where = selectOption.value + "=" + "'" + option + "'"
-                // option = 'material'
             }
-            else query.where = selectOption.value + "=" + option
-            console.log(query.where)
+            else { query.where = selectOption.value + "=" + option }
+            // console.log("where is this", query.where)
+            // console.log(" is this", query)
             query.returnGeometry = true;
             query.outFields = ['material'];
 
             const queryResult = await sublayer.queryFeatures(query)
 
-            console.log(queryResult)
             const renderer = new UniqueValueRenderer({
                 field: selectedField,
                 defaultSymbol: new SimpleLineSymbol({ color: "gray", width: 1 }), // Default symbol
-                uniqueValueInfos: queryResult.features.map((feature, index) => ({
-                    value: feature.attributes[selectedField],
-                    symbol: new SimpleLineSymbol({ color: index % 2 === 0 ? "red" : "blue", width: 2 }) // Alternating colors
-                }))
+                uniqueValueInfos: [{
+                    value: queryResult.features[0].attributes[selectedField], // Use the attribute from the first feature
+                    symbol: new SimpleLineSymbol({ color: "red", width: 2 }) // Custom symbol
+                }]
             });
+
             // Apply the renderer to the sublayer
             if (featLyr) {
                 // Update the renderer of the existing FeatureLayer
@@ -256,10 +221,29 @@ require([
             const queryResult = await sublayer.queryFeatures(query);
             const distinctValues = queryResult.features.map(feature => feature.attributes[selectedValue]);
 
-            console.log("Distinct values:", distinctValues);
+            console.log("Distinct values:", distinctValues, "length", distinctValues.length);
 
             populateField(distinctValues)
 
+            // // Create symbols for each unique value (you need to define your symbols here)
+            // const uniqueValueInfos = distinctValues.map(value => {
+            //     return {
+            //         value: value,
+            //         symbol: new SimpleLineSymbol({ color: "red", width: 2 }) // You need to implement this function
+            //     };
+            // });
+
+            // Create the UniqueValueRenderer
+            const renderer = new UniqueValueRenderer({
+                field: selectedValue, // Field to render based on
+                defaultSymbol: new SimpleLineSymbol({ color: "gray", width: 1 }), // Default symbol
+                uniqueValueInfos: [{
+                    value: queryResult.features[0].attributes[selectedField], // Use the attribute from the first feature
+                    symbol: new SimpleLineSymbol({ color: "red", width: 2 }) // Custom symbol
+                }]
+            });
+            // Apply the renderer to the sublayer
+            sublayer.renderer = renderer;
         }
 
     });
